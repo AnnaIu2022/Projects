@@ -1,0 +1,434 @@
+---
+title: "NBA Wins Analysis"
+output:
+ pdf_document: 
+    latex_engine: "xelatex"
+---
+Chapter 0: Abstract
+
+The purpose of this project is to examine the factors that affect total wins for teams in the National Basketball Association (NBA). A linear regression model with 14 independent variables is evaluated through OLS estimation. The Dataset is cross-sectional, containing observations from 30 teams during the 2018-2019 season. 
+
+Chapter 1: Introduction
+
+  The ultimate goal of any professional sports team is to consistently win. This makes sense, as winning games, as well as championships can have a startling impact on profitability. One such example was Joe Lacob and Peter Guber, who purchased the Golden State Warriors for 450 million dollars in 2010. Now, after three championship titles in the 2010s, that amount has skyrocketed to 4.3 billion dollars. More than a 1000 percent increase in value. To find similar financial success, millions of dollars are allocated to analytical departments in NBA franchises. All of whom are trying to discover the factors that foster a competitive team. 
+  Economists and statisticians have conducted various studies and tests towards that end as well, which has led to a substantive amount of relevant literature on the topic developing over time. Most analysts, however, try to evaluate what makes an impactful player rather than an impactful team. This difference is subtle but significant. Famous statistician John Hollinger created PER, a one-number metric that attempts to encapsulate a player’s entire value. Similar player evaluation metrics such as adjusted box-plus minus and WOWY are the most common forms of NBA statistical analysis. 
+	 This study will be considerably different as it will be utilizing fourteen different independent variables in a linear regression model and evaluating their impact on winning percentage from a team perspective. With a cross-sectional dataset, containing observations from 30 teams during the 2018-2019 season. Our data comes from basketball reference and will discussed in greater depth in the Data Source section. The aim is to look at a larger sample size of players rather than individuals, in hopes that the findings will be more easily replicable. For example, if it’s found that shooting more three-point shots is advantageous, then a coach can automatically make that change by creating plays that focus on shots outside the arc. While individual player metrics are not useful if there is no clear avenue to get the highest-rated players on your roster in the immediate future. In order to achieve this goal, first the model – including its exogenous variables – will be detailed and then the results from the model estimation will be depicted. We expect the variable of average three point percentage to be the highest positive related variable and for turnovers to be the highest negatively related variable.  
+
+Chapter 2: Methodology
+
+**Part 1: Data Source**
+
+   As aforementioned the data comes from basketball reference, a website that stores data on relevant college, European and American basketball statistics. Our data was originally structured into two tables: regular statistics and advanced statistics. Each table contained cross-sectional aggregated data from the 82 games played during the 2018-2019 season and had 30 rows. Each row represents a specific team during that season and the variables reflect statistics (mostly per-game averages) regarding that season. While they had the same number of rows, their column amounts differed as the advanced statistics table had 14 columns while the regular statistics table had 25 columns. The data was in excel format, and so we loaded it onto R-Studio using the 'readxl' package. After loading in the relevant tables we merged them together through the common column 'team'. We labeled this dataset total and it had 38 columns and 30 rows. Now that we had the main dataset we changed the names of relevant independent variables since the 'lm' function in R can't work with variables that have percentage symbols, numbers or periods in their name. 
+
+**Part 2: The Variables in the Model**
+
+  Our dependent variable will be total wins and we have a total of 30 observations to evaluate. Total wins represents the number of wins each team received during the 2018-2019 season. We chose the 2018-2019 season because it was the most recent season that wasn't affected by the Covid-19 pandemic which would of been unreliable data to work with. The pandemic brought upon a lot of irregularities such as not all teams playing the same amount of games, periods where there were no fans in the arenas and numerous other changes that would of made the data an erroneous reflection of previous seasons. Out of all the independent variables available we chose 14 that we believed may have some influence on the dependent variable. We will now list all of our variables:
+
+  1. W - Total Number of Wins (Dependent Variable/Discrete)
+
+  2. BLK - Average number of Blocks per Game (Independent Variable/Continuous)
+
+  3. Age - Average Age of the Roster (Independent Variable/Continuous)
+  
+  4. Pace - Average number of Possessions per game (Independent Variable/Continuous)
+  
+  5. TOV - Average number of Turnovers per game (Independent Variable/Continuous)
+  
+  6. TRB - Average number of Total Rebounds per game (Independent Variable/Continuous)
+  
+  7. FGA - Average number of Field Goal Attempts per game (Independent Variable/Continuous)
+  
+  8. STL - Average number of Steals per game (Independent Variable/Continuous)
+  
+  9. FTA - Average number of Free Throw Attempts per game (Independent Variable/Continuous)
+  
+  10. ThreePA - Average number of Three Point Attempts per game (Independent Variable/Continuous)
+  
+  11. TwoPA - Average number of Two Point Attempts per game (Independent Variable/Continuous)
+  
+  12. AttendPerGame - Average Attendance per game (Independent Variable/Continuous)
+  
+  13. FTr - Average Free Throw Rate per game (Independent Variable/Continuous)
+  
+  14. ThreePPercentage - Average Three Point Percentage per game (Independent Variable/Continuous)
+  
+  15. TwoPPercentage - Average Two Point Percentage per game (Independent Variable/Continuous)
+
+**Part 3: Modeling** 
+
+  First, we will create an additive model where all the relevant variables are included. Then we will check this full-model for any signs of multicollinearity between our independent variables. Before even creating the full-model we started omitting variables that were considered redundant or would have obvious multicollinearity issues. One such example, were the variables Offensive Rebounding and Defensive Rebounding which are redundant, especially with the inclusion of Total Rebounds (simply the combination of ORB and DRB). Consequently, we only included Total Rebounding in our full-model. We will utilize the 'imcdiag' and 'Vif' functions on our full-model to evaluate their variance inflation factor ratings. Redundant values will be removed. 
+  Following the reduction of the model we will conduct a global F-Test to make sure that at least one our independent variables is significantly related to total wins. Once we have confirmed that at least one independent variable is significant, we will do three distinct stepwise procedures to create the best model. These three will be regular stepwise selection using the function 'ols_step_both_p', backward stepwise selection using the function 'ols_step_backward_p' and finally forward stepwise selection utilizing the function 'ols_step_forward_p'. We will evaluate each of these models, along with their R-squared Adj. values and their Root Mean Square Error (RMSE) in order to find the combination of independent variables that create the best-fit model. 
+  Once we have our best combination of independent variables we will add interaction terms into the model and evaluate the significance of the interaction terms through individual t-tests. If there are no significant interaction terms then we will continue with the original best fit model. However, if any interaction terms are significant then they will be included along with the involved variables unless its inclusion worsens the overall fit of the model. The final part in the model creation process is checking whether a higher-order-model is necessary. Any use of a higher order model will be limited because we don't want to over-fit the model and the higher power variables are limited in terms of real-world explanation. 
+  Finally, once our model has passed these various checks and tests we will make sure they match five crucial assumptions: 
+  
+  1. Linearity Assumption - Evaluating the Residual vs Fitted Plot
+
+  2. Normality Assumption - Evaluating the Normal Q-Q plots; Conducting Shapiro-Wilk normality test
+
+  3. Equal Variance Assumption - Evaluating the Residual vs Fitted and Scale-Location Plots; Conducting Breusch-Pagan test
+
+  4. Multicollinearity - Evaluating GGpairs plot; Calculating and Evaluating the variance inflation factors (VIF)
+
+  5. Outliers - Evaluate Cook’s distance and leverage
+
+Notice that we do not have a test for the independence assumption since our data is not time-series. If any of these assumptions are not met we can conduct various tests and procedures to make the model better match the assumption in question. Finally, once all the assumptions have been tested the coefficients and the final R-Squared adjusted value will be interpreted.     
+
+Chapter 3: Results 
+
+#PACKAGES
+
+```{r, echo=TRUE}
+library(olsrr) 
+library(leaps)
+library(readr)
+library(readxl)
+library(mctest)
+library(car)
+library(ggplot2)
+library(lmtest)
+library(GGally)
+library(tidyverse)
+library(data.table)
+```
+#Part 0. Data Wrangling
+
+Here we uploaded the datasets onto R-Studio, combined them by utilizing the 'Team' column and renamed essential variables for easier use of the 'lm' function.
+```{r, echo=TRUE}
+Advanved_Stats <- read_excel("~/Desktop/Data 603 Project Data.xls")
+Regular_Stats <- read_excel("~/Desktop/Data603.xls")
+total <- merge(Advanved_Stats,Regular_Stats,by=c("Team","Team"))
+
+#Changing Names of columns 
+setnames(total, old = c('3PAr','TS%','Attend.','Attend./G','FG%','3P','3PA'), 
+         new = c('ThreePAr','TSPercent','Attend','AttendPerGame','FGPercent',
+                 'ThreeP','ThreePA'))
+setnames(total, old = c('3P%','2P','2PA','2P%','FT%'), 
+         new = c('ThreePPercentage','TwoP','TwoPA','TwoPPercentage',
+                 'FreeThrowPercentage'))
+```
+**Part 1. Variable Selection Procedures**
+
+We built a full model that consisted of every relevant explanatory variable as a base comparison as shown below.
+
+```{r, echo=TRUE}
+#Combine potentially significant Variables into Multi-Linear Model
+fullmodel <- lm(data=total,formula=W~BLK+Age+Pace+TOV+TRB+FGA+STL+FTA+ThreePA+
+                  TwoPA+AttendPerGame+FTr+ThreePPercentage+TwoPPercentage)
+summary(fullmodel)
+```
+The above result is helpful to identify the independent variables that are significant and should be included in our further analysis.
+
+But to begin with the variable selection procedure, we decided to do some preliminary multicollinearity testing and eliminate the predictor variables that have higher VIF values, because if we directly perform a stepwise regression procedure on our full model, it can result in removing the important predictors because of multicollinearity. 
+
+#Part 1a. MULTI-COLLINEARITY TEST:
+
+```{r, echo=TRUE}
+
+#Utilize Empirical Tests in order to see if there is multi-collinearity
+imcdiag(fullmodel, method="VIF")
+vif(fullmodel)
+
+Conclusion1 <- "There is multi-collinearity present in pace, FGA, FTA, ThreePA, 
+TWOPA and FTr."
+
+#Removed FTA and TwoPA in order to remove multi-collinearity by removing 
+#redundant variables 
+Newtlm <- lm(data=total,formula=W~BLK+Age+Pace+TOV+TRB+FGA+STL+FTA+
+               AttendPerGame+FTr+ThreePPercentage+TwoPPercentage)
+
+imcdiag(Newtlm, method="VIF")
+vif(Newtlm)
+
+Conclusion2 <- "While the first vif test find no multi-collinearity, 
+FGA and Pace do seem to have some relationship as they are both 
+close to 10 on the VIF scale. So I think they should be removed."
+
+#Removed FGA in order to eliminate multi-collinearity by removing redundant 
+#variables 
+Newtlm2 <- lm(data=total,formula=W~BLK+Age+TOV+TRB+Pace+STL+FTA+
+                AttendPerGame+ThreePPercentage+TwoPPercentage)
+
+imcdiag(Newtlm2, method="VIF")
+vif(Newtlm2)
+Conclusion3 <- "There is no long multi-collinearity present in the model."
+
+```
+From the above result it can be seen that, the predictor variables that does not show multicollinearity are: Age,BLK+TOV+TRB+Pace+STL+FTA+AttendPerGame,ThreePPercentage and TwoPPercentage.
+
+Therefore,we will be using these variables for our step-wise,forward and backward regression procedures to select the predictor variables for our best fit model.
+
+##Part 1b. Global F-test##
+
+Significance level $\alpha=0.05$
+
+Therefore the hypothesis can be defined as-
+
+  $H0:\beta1=\beta2=\beta3=\beta4=\beta5=\beta6=\beta7=0$
+     
+  $Ha:atleast \ one\ \beta_{i}\ne 0$
+```{r, echo=TRUE}
+reg1<-lm(data=total,formula=W~TOV+FTA+TRB+Pace+STL+ThreePPercentage+
+           TwoPPercentage) 
+reg2<-lm(W~1, data=total)
+anova(reg2,reg1)
+
+```
+From the above F- test we can see that the p-value<0.05.Therefore, we reject the Null Hypothesis. In other words, we can say that the F-test suggests that Number of wins depends on at least one of the independent variable variable.
+
+
+#Part 1c. STEPWISE,FORWARD AND BACKWARD REGRESSION MODEL:
+
+```{r, echo=TRUE}
+stepmod = ols_step_both_p(Newtlm2,pent = 0.05, prem = 0.1, details=FALSE)
+summary(stepmod$model)
+
+Backmodel = ols_step_backward_p(Newtlm2,pent = 0.05, prem = 0.1, details=FALSE)
+summary(Backmodel$model)
+
+
+Forwardmodel = ols_step_forward_p(Newtlm2,pent = 0.05, prem = 0.1, 
+                                  details=FALSE)
+summary(Forwardmodel$model)
+
+#first order model
+Newtlm3 <- lm(data=total,formula=W~TOV+TRB+Pace+STL+FTA+ThreePPercentage+
+                TwoPPercentage)
+```
+
+From the output it can be seen that, the forward regression procedure contains a insignificant term "Age" whose p-value is greater than 0.05, whereas in stepwise and backward regression procedure all the variables are significant and it also have the highest Adjacent R-Squared value and the lowest RMSE value,which clearly indicates that the model containing the predictor variables that are obtained using the backward and stepwise regression can be considered as a good fit model. 
+
+Therefore,the predictor variables for our first order model are:
+TOV,Pace,TRB,STL,FTA,ThreePPercentge and TwoPPercentage.
+
+Our first order model is given below:
+
+  $\hat Y_{wins}=\hat\beta_{0}+\hat\beta_{1} TOV+\hat\beta_{2} PACE+\hat\beta_{3} TRB+\hat\beta_{4} STL+\hat\beta_{5} FTA+\hat\beta_{6} ThreePPercentage+\hat\beta_{7} TwoPPercentage$
+  
+#Part 1d. INTERACTION-MODEL
+
+We are also interested in identifying the significant interactions terms that can be included in our first order model. Therefore,the interaction model with all possible interaction terms is shown shown below: 
+
+```{r, echo=TRUE}
+interaction_model <- lm(data=total,formula=W~(TOV+TRB+Pace+STL+FTA+
+                                            ThreePPercentage+TwoPPercentage)^2)
+summary(interaction_model)
+```
+We evaluate each result by utilizing the individual t-test method. From the above result, it can be clearly seen that there are no significant interaction terms with p-value less than 0.05, which indicates that our best fit model should not contain any interaction term.
+
+Therefore, our best fit model is our first order model with no interaction terms.
+
+#Part 1e.  HIGH ORDER REGRESSION MODEL
+
+We are also interested in identifying the predictor variables that show a curvature in the relationship with the response variable, therefore our higher order regression model to identify those variables is given below:
+
+```{r, echo=TRUE}
+NewtlmHigh_Order <- lm(data=total,formula=W~I(Age^2)+Age+I(TRB^2)+TRB+
+            I(Pace^2)+Pace+I(STL^2)+STL+I(ThreePPercentage^2)+ThreePPercentage)
+summary(NewtlmHigh_Order)
+NewtlmHigh_Order2 <-lm(data=total,formula=W~Age+TRB+Pace+I(Pace^2)+STL+
+                         ThreePPercentage)
+summary(NewtlmHigh_Order2)
+```
+From the above result it can be seen that there are no significant higher order regression terms,therefore it can be concluded that no independent variable in our first order model follows a curvature in the relationship with the response variable.
+
+
+After performing all the variable selection procedures,and identification of interaction terms and higher regression terms,our best fit regression model is as follows:
+
+ $\hat Y_{wins}=\hat\beta_{0}+\hat\beta_{1} TOV+\hat\beta_{2} PACE+\hat\beta_{3} TRB+\hat\beta_{4} STL+\hat\beta_{5} FTA+\hat\beta_{6} ThreePPercentage+\hat\beta_{7} TwoPPercentage$
+
+**2. Multiple Regression Assumptions:** 
+
+#Part 2a. Linearity Assumption
+
+Our model assumes that there is straight-line relationship between the predictor variables and the response variable.To test whether the linearity assumption holds true, we will be plotting residual vs fitted plot.The plot for testing the assumption is shown below:
+
+```{r, echo=TRUE}
+Newtlm3 <- lm(data=total,formula=W~TOV+TRB+Pace+STL+FTA+ThreePPercentage+
+                TwoPPercentage)
+
+plot(fitted(Newtlm3), residuals(Newtlm3),xlab="Fitted Values", 
+     ylab="Residuals") 
+abline(h=0,lty=1) 
+title("Residual vs Fitted") 
+```
+From the graph, it can be seen that the residual vs fitted plot for our best fit model does not shows any pattern and is almost linear, which clearly indicates that the linearity assumption holds true for our predicted model.
+
+#Part 2b. Equal Variance Assumption
+
+One of the key assumptions is that there is equal variance among the residuals. In order to test that we can look at the Residuals vs Fitted and Scale-Location plots. Furthermore, we can conduct a Bruesch-Pagan Test.  
+
+Significance level $\alpha=0.05$
+
+Therefore the hypothesis can be defined as-
+
+  $H0: Heteroscedasticity is not present (homoscedasticity)$
+  $Ha: Heteroscedasticity is present$
+     
+
+```{r, echo=TRUE}
+plot(Newtlm3, which=c(1,3))
+bptest(Newtlm3)
+pvalue <- 0.3557
+```
+
+While our lines in both graphs aren't perfectly straight they do closely resemble what we would expect if the equal variance assumption was met. The studentized Breusch-Pagan test confirmed that the Equal Variance Assumption was met as we fail to reject the null with our $p-value= 0.3557$. Consequently, Heteroscedasticity is not present in the model.
+
+#Part 2c. Normality Assumption
+For our best fit model to folow the normality assumption the error between the observed and the residuals of the regression model should be normally distributed.To test this assumption a histogram and a Q-Q plot has been shown below:
+
+```{r, echo=TRUE}
+par(mfrow=c(1,2)) 
+
+#histogram
+hist(residuals(Newtlm3)) 
+#normal q-q plot
+plot(Newtlm3, which=2)
+```
+From the above graph it can be seen that the majority of the points fall close to the diagonal reference line, which suggest that our model follows a normal distribution.
+
+To further verify our results, we can also use shapiro-wilk test.The Hypothesis for the test is defined as follows:
+
+ $H0: Sample data is significantly distributed$
+ $Ha: Sample data is not significantly distributed$
+
+let the significance level for our test be $\alpha=0.05$
+
+```{r echo=TRUE}
+#shapiro-wilk test 
+shapiro.test(residuals(Newtlm3))
+```
+
+From the output it can be seen that the $p-value=0.2951$ is greater than the significance level.Thus we fail to reject the Null Hypothesis which indicates that the errors terms are normality distributed.Hence,our model follows follows the Normality assumptions.
+#Part 3c. Further Multi-Collinearity Testing
+
+We know that none of the variables have exceedingly high VIF values from our earlier testing. So here, we will focus on looking at ggpairs to make sure none of the indpendent variables have a correlation coefficient greater than r > .80
+```{r, echo=TRUE}
+ggpairs(data= select(total,c(W,TOV,TRB,Pace,STL,FTA,ThreePPercentage,
+                             TwoPPercentage)))
+
+```
+As none of the values are near the .8 correlation amount and we know that the VIF values are low, we can assume that there is no multicollinearity in the model. 
+
+#Part 3c. Significant Outliers
+
+In order to evaluate any influential points and outliers in the model we have to look at the Cook's Distance and the Residuals vs Leverage Plot. 
+
+```{r, echo=TRUE}
+#Cooks Distance
+plot(Newtlm3,pch=18,col="red",which=c(4))
+plot(Newtlm3,which=5) 
+```
+The first graph shows the Di values, where any value over 0.5 should be scrutinized and any value over 1.0 is definitely considered an influential outlier. However, we find no value near 0.5 and so there is no reason for concern when looking at the Cook's Distance plot. Similarly, when looking at the Residual Vs. Leverage plot there are no points past the 0.5 mark. Consequently, when it comes to outliers, there is no reason to change or manipulate our model further. 
+
+**Part 3: Interpertation**
+
+The final Theoretical Model: 
+
+'W = -B0 + B1*TRB + B2*STL + B3*ThreePPercentage - B4*Pace + B5*TwoPPercentage + B6*FTA - B7*TOV + Ei'
+
+The final Model:
+
+'W = -148.6837 + 3.7100*TRB + 4.8999*STL + 342.7352*ThreePPercentage - 2.9395*Pace + 307.5280*TwoPPercentage + 1.0456*FTA - 1.9284*TOV'
+
+R-Squared Adj: 0.9078
+RMSE: 3.652
+
+Interpertation:
+**For every indpendent variable, it assumed for their interpertations that all other independent variables are held constant. 
+
+B0: This represents the value of wins when all the indpendent variables are equal to zero. Its interpretation does not have much real-world application.
+
+B1: Indicates that one additional average Total Rebounds per game leads to an additional 3.7100 wins. 
+
+B2: Indicates that one additional average Steals per game leads to an additional 4.8999 wins. 
+
+B3: A one percentage point increase in average three-point percentage leads to a 343 percent increase in wins. For example, if a team would win 10 wins at 39 percent three-point shooting per game, if their average three-point shooting increased to 40 percent then they would win around 44 games.  
+
+B4: Indicates that one additional possession per game leads to 2.9395 less wins. 
+
+B5: A one percentage point increase in two-point percentage leads to a 308 percent increase in wins. For example, if a team would win 10 wins at 39 percent two-point shooting per game, if their average two-point shooting increased to 40 percent then they would win around 41 games.
+
+B6: Indicates that one additional average free-throw attempted per game leads to 1.0456 more wins.
+
+B7: Indicates that one additional average turnover per game leads to 1.9284 less wins.
+
+R-Squared Adj: According to our R-Squared Adj. the model accounts for 90.78% of the variation of the dependent variable. This is an extremely high R-Squared Adj and indicates that it has a great fit. However, there is one limitation in our model, in that it reflects a single-season. So, while its prediction prowess and Adj R-Squared may not necessarily be as high in predicting other season (90 percent of variation is extremely high) it is undoubtedly still a very well fit model and predictor of wins in general. 
+
+Chapter 4: Conclusion and Discussion
+#Conclusion
+
+#Part 1: Summary of Findings 
+
+The goal of this project was to predict wins in the NBA by utilizing various relevant statistics. 
+We also wanted to evaluate whether certain variables were more important than others in evaluating total wins and to see the relationship (if any) between all of our variables. 
+
+Firstly, during our checks for multi-collinearity we used empirical tests to calculate the VIF's of the independent variables. After the test we found out there is multi-collinearity present in Pace, FGA,FTA,ThreePA,TWOPA, and FTr. We eliminated the variables from this group that were redundant to improve the model. 
+
+Then, we used stepwise regression model comparison along with forward selection and backward elimination model.The stepwise model and backward regression procedure had really high Adjusted R-squared values, showing that almost 90% of the variance in the data is explained by the model and the lowest RMSE Value.
+
+None of the relationships in interaction model were significant. Therefore, we didn’t use the interaction model. Even though higher order term were significant, they were borderline significant. After we combined the main effects with higher order term, and the interaction together, we found out that all the terms in our model were not significant through the partial F-test.  To fix this we removed higher order term from our model and only kept the significant terms. 
+Overall our best fit model includes  (turnovers) TOV, (Total Rebounds) TRB, Pace, (Steals) STL, (Free Throw Attempts) FTA, ThreePPercentage, TwoPPercentage.
+
+#Part 1b: Final model and Interpertation of variables 
+
+The final Theoretical Model: 
+
+'W = -B0 + B1*TRB + B2*STL + B3*ThreePPercentage - B4*Pace + B5*TwoPPercentage + B6*FTA - B7*TOV + Ei'
+
+The final Model:
+
+'W = -148.6837 + 3.7100*TRB + 4.8999*STL + 342.7352*ThreePPercentage - 2.9395*Pace + 307.5280*TwoPPercentage + 1.0456*FTA - 1.9284*TOV'
+
+R-Squared Adj: 0.9078
+RMSE: 3.652
+
+Interpretation:
+**For every independent variable, it assumed for their interpretations that all other independent variables are held constant. 
+
+B0: This represents the value of wins when all the independent variables are equal to zero. Its interpretation does not have much real-world application.
+
+B1: Indicates that one additional average Total Rebounds per game leads to an additional 3.7100 wins. 
+
+B2: Indicates that one additional average Steals per game leads to an additional 4.8999 wins. 
+
+B3: A one percentage point increase in average three-point percentage leads to a 343 percent increase in wins. For example, if a team would win 10 wins at 39 percent three-point shooting per game, if their average three-point shooting increased to 40 percent then they would win around 44 games.  
+
+B4: Indicates that one additional possession per game leads to 2.9395 less wins. 
+
+B5: A one percentage point increase in two-point percentage leads to a 308 percent increase in wins. For example, if a team would win 10 wins at 39 percent two-point shooting per game, if their average two-point shooting increased to 40 percent then they would win around 41 games.
+
+B6: Indicates that one additional average free-throw attempted per game leads to 1.0456 more wins.
+
+B7: Indicates that one additional average turnover per game leads to 1.9284 less wins.
+
+R-Squared Adj: According to our R-Squared Adj. the model accounts for 90.78% of the variation of the dependent variable. This is an extremely high R-Squared Adj and indicates that it has a great fit. However, there is one limitation in our model, in that it reflects a single-season. So, while its prediction prowess and Adj R-Squared may not necessarily be as high in predicting other season (90 percent of variation is extremely high) it is undoubtedly still a very well fit model and predictor of wins in general. 
+
+RMSE: The standard deviation of the residuals is 3.652. The lower the value the better and this was among the lowest of any model we created.
+
+Overall, this model was the best because it underwent tremendous testing and met all the assumptions. Furthermore, the high Adjusted R-Squared value indicates that the model is already a tremendous fit and any further attempts could lead to the over-fitting of the model.  
+
+
+#Discussion
+
+#Part 1: 
+
+As avid NBA fans, we felt that creating a model to predict the outcome of NBA games would be an enjoyable project.  We were able to utilize many of the concepts learned in our DATA 603 class for this project — including multiple linear regression, higher-order models, interaction models, checking for assumptions of linearity, heteroscedasticity, normality, multicollinearity, etc,  — and want to thank Professor Dr. Thuntida Ngamkham for her fantastic work in teaching throughout the semester.
+
+One of the main challenges in our modeling was to deal with multicollinearity. There was a high correlation between Pace, FGA, FTA, ThreePA, TWOPA, and FTr. After eliminating five variables FGA, FTA, ThreePA, TWOPA, and FTr, multicollinearity was removed. There were no unexpected relations between the variables. 
+
+As we can see from the outputs of the model, there is undoubtedly a strong linear correlation between (turnovers) TOV, (Total Rebounds) TRB, Pace, (Steals) STL, (Free Throw Attempts) FTA, ThreePPercentage, TwoPPercentage, and WINS. It makes logical sense because teams with more turnovers should win less games and teams with more Total Rebounds, Steals, Free Throw Attempts, as well as higher ThreePPercentage and TwoPPercentage are supposed to win more games. The interesting value was pace, where it was unclear from the beginning which direction it would be related (if related at all) to wins and it turned out that it was negatively related. That was one of the most interesting findings for the project. As aforementioned earlier, the relatively high R^2 values (0.9078), low Residual standard error (3.652) on 22 degrees of freedom, Multiple R-squared(0.9301), F-statistic (41.79), and significant F-statistics confirm the goodness of fit of the model. There, however, are some complications about the model that we would like to address. We would like to point out some scenarios where the model could potentially fail to work.
+
+1) When teams make major changes in their roster during the season. Trades between teams can happen and since no two players can have the same skillset, it may negatively affect team play which means it can affect the rate at which the teams win.
+
+2) Another reason for concern is injuries that can happen to players, especially the major ones. If, for example, Jordan gets an injury. His team, Chicago Bulls, might have lesser win ratios until he comes back. Injuries can also have an enormous impact on team morale. These kinds of factors can't be accounted for in our model.
+
+3) There is somewhat of a limit on how good of predictor this would be on wins for different seasons. This is especially true for seasons that took place a long time ago. For example, in the 60's there wasn't even an NBA three point line and steals (among other statistics) weren't recorded, so some variables would become useless. 
+
+Overall, while our model is good (and we had fun making it) there can be some interesting ways to improve or expand it in the future. One way would be the inclusion of more seasons, as this could build stronger results for the game of basketball as a whole. Another improvement could be more tests done to evaluate the ability of the model to predict the dependent variable. Lastly, deeper research on variables that should of been included but weren't could be informative. 
+
+#References
+
+“2020-21 NBA Season Summary.” Basketball-Reference.Com, https://www.basketball-reference.com/leagues/NBA_2021.html. Accessed 8 Dec. 2021.
+
+Statista. 2003-2020. “Golden State Warriors franchise value from 2003 to 2020 (in millions U.S.dollars).” https://www.statista.com/statistics/194654/franchise-value-of-the-golden-state-warriors-of-the-nba-since-2006/
+
