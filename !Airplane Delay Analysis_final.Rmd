@@ -1,0 +1,480 @@
+---
+title: "Untitled"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#install.packages("Hmisc")
+library("Hmisc")
+library(AppliedPredictiveModeling)
+library(tree)
+library(MASS)
+library(ISLR)
+library(ggplot2)
+library(boot)
+library(caret)
+```
+
+## R Markdown
+
+```{r}
+ar_delay <- read.csv("airline_delay_new.csv")
+```
+
+```{r}
+air_delay_1 = subset(ar_delay, select = -c(X) )
+```
+
+
+```{r}
+air_delay_2 <- air_delay_1[!is.na(air_delay_1$DEP_TIME), ]
+```
+
+
+```{r}
+air_delay_2 <- air_delay_1[!is.na(air_delay_1$DEP_TIME), ]
+summary(air_delay_2)
+```
+```{r}
+air_delay <- air_delay_1[!is.na(air_delay_1$AIR_TIME), ]
+summary(air_delay_2)
+```
+```{r}
+air_delay[is.na(air_delay)] = 0
+
+```
+
+
+
+```{r}
+air_delay <- air_delay[air_delay$DEST=="JFK",]
+```
+
+
+Q) Which Carrier has the highest and lowest average delay of its flights to Newyork?
+```{r}
+require(dplyr) 
+
+#aggregate(OP_UNIQUE_CARRIER ~ ARR_DELAY, air_delay, sum)
+
+q_1 <- air_delay %>% group_by(OP_UNIQUE_CARRIER) %>% summarise(Average_Arrival_delay = mean(ARR_DELAY))
+
+ggplot(q_1, aes(x = reorder(OP_UNIQUE_CARRIER, -Average_Arrival_delay), y = Average_Arrival_delay)) + geom_bar(stat = "identity")
+
+```
+Skywest(OO) airlines has the highest average arrival delay to Newyork, whereas Midwest airlines(YX) has the lowest average arrival delay.
+
+Q)  Which airlines has the highest percentage number of flights delayed to Newyork?
+```{r}
+count_delays <- air_delay %>% group_by(OP_UNIQUE_CARRIER) %>%  count(ARR_DELAY > 0)
+
+#print(count_delays)
+airline_9E <- (488/(488+1091))*100
+airline_AA <- ((467)/(476+790))*100
+airline_AS <-  (179/(179+245))*100
+airline_B6  <-  (1646/(1646+1802))*100
+airline_DL <- (991/(991+1781))*100
+airline_YX <- (127/(127+291))* 100
+airline_HA <- (14/(14+17))* 100
+airline_OO <- (31/(22+31))* 100
+airline_MQ <- (186/(186+217))*100
+
+percentage_delay <- c(airline_9E,airline_AA,airline_AS,airline_B6,airline_DL,airline_YX,airline_HA,airline_OO,airline_MQ)
+
+Airlines <- c("airline_9E","airline_AA","airline_AS","airline_B6","airline_DL","airline_YX","airline_HA","airline_OO","airline_MQ")
+
+pec_delay <- data.frame(Airlines,percentage_delay)
+#pec_delay
+
+ggplot(pec_delay, aes(x = reorder(Airlines, -percentage_delay), y = percentage_delay)) + geom_bar(stat = "identity")
+
+#air_delay %>% count(OP_UNIQUE_CARRIER, ARR_DELAY)
+#ggplot(q_1, aes(x = reorder(OP_UNIQUE_CARRIER, -Average_Arrival_delay), y = Average_Arrival_delay)) + geom_bar(stat = "identity")
+```
+Skywest(OO) airlines has the highest percentage number of flights delayed to Newyork, whereas Midwest airlines(YX) has the lowest percentage arrival delay.
+
+Q) From which airport do most flights come to JFK?
+
+```{r}
+origins <- air_delay %>% group_by(ORIGIN) %>%  count(ORIGIN)
+#origins <- origins[order(n),]
+#print(origins)
+#sort(origins, decreasing = True, na.last = TRUE)
+#print(origins)
+origins <-origins[order(origins$n,decreasing = TRUE),]
+origins <- head(origins)
+ggplot(origins, aes(x = reorder(ORIGIN, -n), y = n)) + geom_bar(stat = "identity")
+```
+
+These are the top 5 airports with the highest number of flights to JFK. Losangeles has the highest number of flights to Newyork.
+
+Q) Which airports have the most delay to JFK?
+```{r}
+cities_delay <- air_delay %>% group_by(ORIGIN) %>%  summarise(Average_Arrival_delay = mean(ARR_DELAY))
+cities_delay <-cities_delay[order(cities_delay$Average_Arrival_delay,decreasing = TRUE),]
+cities_delay <- head(cities_delay)
+ggplot(cities_delay, aes(x = reorder(ORIGIN, -Average_Arrival_delay), y = Average_Arrival_delay)) + geom_bar(stat = "identity")
+#ggplot(cities_delay, aes(x = ORIGIN, y = Average_Arrival_delay)) + geom_bar(stat = "identity")
+```
+Flights from Albuquerque has the most average delay to Newyork(JFK).
+
+
+Sampling Techniques :
+
+Before proceeding further with model building lets have a look at which sampling technique is better for estimating the average arrival delay of flights to JFK in the month of december for the year 2019. 
+ 
+What is the population average arrival delay to JFK.
+```{r}
+mean(air_delay$ARR_DELAY)
+```
+We found this to be 9.80 minutes. This tells us that there is an average delay of 9.80 minutes for arrival of flights to JFK in the month of december 2019. Our population sie is 10385, this includes all the flights which arrived at JFK airport in the month of December. 
+
+We will first start with simple random sampling.
+
+Simple Random Sampling :
+
+Sample size taken is 2000 flights
+```{r}
+set.seed(10)
+library(survey)
+library(sampling)
+set.seed(10)
+N= dim(air_delay)[1]
+
+n= 2000
+index1=sample(1:N ,n,replace = FALSE)
+
+samp1 <- air_delay[index1,]
+pw = rep(N/n,n)
+fpc <- rep(N,n)
+samp1 <- data.frame(samp1, pw=pw, fpc = fpc )
+
+survey1<- svydesign(data = samp1,id = ~0, strata = NULL , fpc = ~fpc, weights = ~pw)
+mean_est1 <- svymean(~ARR_DELAY, survey1)
+print(mean_est1)
+```
+Our sample estimates is 7.73 minutes which is around 2 units lower than the population mean arrival delay and its standard error is 1.2784 minutes.
+
+Stratified Sampling
+
+We did the stratified sampling based on the origin with the sample size as simple random sampling because based on our fourth question in the explorative analysis, we found that cities with most average delay are usually far from Newyork. So, we assumed distance might effect the average delay and stratifying based on origin would give us the highest Sum of squares between the strata compared to other variables in our dataset. We took the same sample size of n=2000 as Simple random sampling.
+
+```{r}
+library(sampling)
+ set.seed(10)
+ n=2000
+ air_delay_1 <- air_delay[air_delay$ORIGIN!="JAC",]
+ N1=dim(air_delay_1)[1]
+ categories=unique(air_delay_1$ORIGIN)
+ Nh=rep(0,length(categories))
+ 
+ for (i in 1:length(categories)) {
+    Nh[i]=length(air_delay_1$ORIGIN[air_delay_1$ORIGIN==categories[i]])
+  }
+
+size= round((n/N1)*Nh)
+idx2=sampling:::strata(air_delay_1, stratanames = c("ORIGIN"), size=size, method = "srswor") 
+samp2 <- getdata(air_delay_1,idx2)
+pw = 1/samp2$Prob
+fpc=c()
+ for (i in 1:length(Nh)) {
+   fpc= c(fpc,rep(Nh[i],size[i]))
+ }
+svy2<-svydesign(id=~1, strata =~ORIGIN, weights=~pw, data = samp2, fpc=~fpc)
+mean_est2 <- svymean(~ARR_DELAY, svy2)
+print(mean_est2)
+```
+We found the mean average delay of stratified sampling is 8.7466 minutes which is closer to population mean than simple random sampling with same size. Standard error of this sample is 1.0722 minutes.
+
+Cluster Smapling : 
+Next we will look at cluster sampling based on each airline companies as each airline has flights from many cities to JFK. Assuming that using this variable will give us maximum sum of squares within each cluster.
+
+```{r}
+set.seed(10)
+carriers=unique(air_delay$OP_UNIQUE_CARRIER)
+N=length(carriers)
+#print(N)
+n=4
+idx3=sampling:::cluster(air_delay, clustername = "OP_UNIQUE_CARRIER", size = n, method = "srswor")
+samp3 = getdata(air_delay, idx3)
+pw=rep(N/n, dim(samp3)[1])
+fpc= rep(N,dim(samp3)[1])
+svy3 = svydesign(id= ~OP_UNIQUE_CARRIER , data = samp3 , weights = ~pw, fpc = ~fpc)
+mean_es3 <- svymean(~ARR_DELAY, svy3)
+print(mean_es3)
+```
+Even though we took 4 out of 9 airline companies for our sample we got a mean of 13.779 minutes of around 4 minute difference from population mean with a deviation of around 4 minutes. This tells us that cluster sampling is not suitable for predicting population mean arrival delay of flights to JFK in the month of December.
+
+Thus from our sampling techniques we found that stratified sampling based on origin variable in our given dataset in comparision to other sampling techniques gave us the closest estimate to population mean arrival delay of flights to JFK in the month of december.
+
+Building Predictive models:
+
+We will first start with linear regression models, but before proceeding further we will look at the columns and consider only the ones which can be included in the models. Our prediction models response variable is arrival delay (ARR_DELAY). We want to predict based on the given information whether a flight can be delayed to JFK or not.
+
+```{r}
+names(air_delay)
+```
+We will not be inluding any columns which are specified in the original date set with _DELAY in the column variable except ARR_DELAY as they columns directly tell us that delay will happen. There is no need to predict if a flight's arrival will be delayed if information is given that it will be delayed due to weather or carrier or departure delay or security delay. So we will not be considering these variables DEP_DELAY, CARRIER_DELAY, WEATHER_DELAY, NAS_DELAY, SECURITY_DELAY, LATE_AIRCRAFT_DELAY. 
+WHEELS OFF, WHEELS ON, DEP_TIME, ARR_TIME wont give us any information as all these variables are in time format. 
+
+Linear Regression :
+
+We want to build a linear regression model to predict the arrival delay of flights to newyork in the month of december. We will start with a VIF test which allows us to detect any multicolinearity between the explanatory variables.
+
+VIF TEST 
+```{r}
+library(mctest)
+linear_model_1 <- lm(ARR_DELAY ~  TAXI_OUT + TAXI_IN + AIR_TIME + DISTANCE  , air_delay)
+imcdiag(linear_model_1, method = 'VIF')
+```
+collinearity is detected between the variables Air_time and Distance. So we should only consider one of these variables for building multiple linear regression model. We are removing airtime and planning to use distance in our model.
+
+```{r}
+library(olsrr)
+linear_model_2 <- lm(ARR_DELAY ~  TAXI_OUT + TAXI_IN + DISTANCE  , air_delay)
+step_model = ols_step_both_p(linear_model_2, pent = 0.1, prem = 0.3, details=FALSE)
+summary(step_model$model)
+```
+We can see that we have an adjusted R-squared value of 0.05224 which tells that this model is not good at predicting arrival delay of flights to JFK airport. Next, we will check whether the model is meeting the normality assumption or not.
+
+Normality Assumption:
+
+Ho: the sample data is significantly normally distributed
+Ha: the sample data is not significantly normally distributed
+
+```{r}
+ggplot(linear_model_2, aes(sample=linear_model_2$residuals)) +stat_qq() +stat_qq_line()+labs(title="Q-Q-plot")
+```
+From the Q-Q plot, we can see that majority of the points don't fall on the line. So the normality assumption is failed by the model. So, Linear regression is not suitable at all for predicting airrival delay of flights to JFK in the month of December. we will proceed with the logistic regression next.
+
+
+Logistic Regression.
+
+```{r}
+air_delay$Binary_delayed <- ifelse(air_delay$ARR_DELAY >0, "DELAYED", "ON TIME/EARLY")
+```
+
+
+```{r}
+#air_delay = subset(air_delay, select = -c(Binary_weather))
+air_delay$Binary_arr_time <- ifelse((air_delay$ARR_TIME > 800 & air_delay$ARR_TIME < 2000), "PEAK TIME", "OFF PEAK")
+```
+
+
+```{r}
+set.seed(10)
+N=dim(air_delay)[1]
+index=sample(1:N ,0.75*N,replace = FALSE)
+
+train <- air_delay[index,]
+test <- air_delay[-index,]
+
+
+contrasts(factor(air_delay$Binary_delayed))
+
+log_model_1<-glm(factor(Binary_delayed) ~   Binary_arr_time + TAXI_OUT + TAXI_IN  + DISTANCE + factor(OP_UNIQUE_CARRIER), family=binomial, data=train)
+
+summary(log_model_1)
+```
+```{r}
+log_model_2<-glm(factor(Binary_delayed) ~    TAXI_OUT  + TAXI_IN + factor(OP_UNIQUE_CARRIER), family=binomial, data=air_delay)
+  
+summary(log_model_2)
+```
+
+```{r}
+set.seed(10)
+Prob.predict<-predict(log_model_2,test,type="response")
+test.predict=rep("DELAYED",nrow(test))
+test.predict[Prob.predict>=0.5]="ON TIME/EARLY"
+actual=test$Binary_delayed
+table(test.predict,actual)
+```
+
+```{r}
+mean(test.predict!=actual)
+```
+Misclassification rate is 29.91
+
+Ten-fold cross validation
+
+```{r}
+set.seed(10)
+logistic_10fold<-train(Binary_delayed~ TAXI_OUT  +  TAXI_IN + factor(OP_UNIQUE_CARRIER), data=air_delay, trControl = trainControl(method = "cv", number=10), method='glm', family='binomial')
+accuracy <- logistic_10fold$results[2]$Accuracy
+misclassification_tenfold <- 1-accuracy
+misclassification_tenfold
+```
+
+With ten fold cross validation our misclassifaction decreased from 30.073 to 29.73 percent.
+
+
+
+Leave one out cross validation 
+```{r}
+set.seed(10)
+#logistic_LOOCV<-train(Binary_delayed ~  TAXI_OUT + TAXI_IN + factor(OP_UNIQUE_CARRIER), data=air_delay, trControl = trainControl(method = "LOOCV"), method='glm', family='binomial')
+#accuracy <- logistic_LOOCV$results[2]$Accuracy
+#misclassification_LOOCV <- 1-accuracy
+#misclassification_LOOCV
+```
+misclassification rate is 0.2978334  
+
+Misclassification rate increased with LOOCV 
+
+```{r}
+set.seed(10)
+folds<-createFolds(factor(air_delay$ORIGIN), k=10)
+
+misclassification_1<-function(idx){
+  Train<-air_delay[-idx,]
+  Test<-air_delay[idx,]
+  log_model_3<-glm(factor(Binary_delayed) ~  TAXI_OUT  + TAXI_IN + factor(OP_UNIQUE_CARRIER),          family=binomial, data=Train)
+  Prob.predict<-predict(log_model_3,Test,type="response")
+  test.predict=rep("DELAYED",nrow(Test))
+  test.predict[Prob.predict>=0.5]="ON TIME/EARLY"
+                                  
+  return(1-mean(test.predict==Test$Binary_delayed))
+}
+
+mis_rate=lapply(folds,misclassification_1)
+mean(as.numeric(mis_rate))
+
+```
+Missclassification rate for stratified ten fold cross validation based on origin is 29.86
+
+
+Linear discriminant analysis : 
+
+The main motivation behind us to do linear discriminant analysis is to categorize the delay better into significant delay or a small delay. So we will create a new variable based on arrival delay into three categories "ON TIME/EARLY", "SMALL DELAY" and "SIGNIFICANT DELAY".
+
+```{r}
+air_delay <-  air_delay %>% 
+  mutate(status = case_when(
+     ARR_DELAY <= 0  ~ "ON TIME/EARLY",
+     ARR_DELAY  > 0 &  ARR_DELAY  <= 20 ~ "SMALL DELAY",
+     ARR_DELAY  > 20 ~ "SIGNIFICANT DELAY"
+  )
+)
+```
+
+Normality Condition.
+
+Ho: the sample data is significantly normally distributed
+Ha: the sample data is not significantly normally distributed
+
+We will proceed by subsetting the data based on each of these categories to test the normality condition.
+
+```{r}
+air_delay_sigDelay <- subset(air_delay,status=="SIGNIFICANT DELAY")
+air_delay_onTime <- subset(air_delay,status=="ON TIME/EARLY")
+air_delay_smallDelay <- subset(air_delay,status=="SMALL DELAY")
+variables <- c("TAXI_OUT","TAXI_IN","DISTANCE")
+```
+
+First we will start doing it for air_delay_sigDelay subset data.
+```{r}
+par(mfrow=c(3,2))
+for ( i in variables){
+  qqnorm(air_delay_sigDelay[[i]]); qqline(air_delay_sigDelay[[i]], col=2)
+}
+```
+From all the three Q-Q plots, we can see that majority of the points don't fall on the line. So the normality assumption is failed for these three variables. We will confirm our result with shapiro wilk test.
+
+Shapiro wilk test.
+
+```{r}
+shapiro.test(air_delay_sigDelay$TAXI_OUT)
+shapiro.test(air_delay_sigDelay$TAXI_IN)
+shapiro.test(air_delay_sigDelay$DISTANCE)
+```
+The shapiro wilk test also gives us the same results, thus the normality condition is failed for all these explanatory variables. So Linear discriminant analysis cannot be perfomed to predict arrival delay for flights in the month of december to JFK using these explanatory variables.
+
+
+Classification Tree:
+
+Now we want to build a Classification Tree model to predict whether a flight can be delayed or not. We want to compare this with the logistic regression model and find out which model is giving the best results for our data. 
+
+we are building our model with 75 percent of our data. 
+
+```{r}
+set.seed(10)
+tree_flights <- tree(factor(Binary_delayed) ~  factor(Binary_arr_time) + TAXI_OUT  + TAXI_IN  + DISTANCE + AIR_TIME  , train)
+plot(tree_flights)
+text(tree_flights)
+summary(tree_flights)
+```
+Here, we can see that the two variables which are classifying the tree are "TAXI_OUT" and "TAXI_IN". we have only three terminal nodes. Now, We want to calculate the misclassification rate by using our test data set.
+
+```{r}
+set.seed(10)
+flights_pred<-predict(tree_flights,test,type="class") 
+table(flights_pred,test$Binary_delayed)
+mean(flights_pred!=test$Binary_delayed)
+```
+We have a misclassification rate of 33.538 percent.
+
+Pruning Tree with LOOCV
+```{r}
+set.seed(10)
+cv_prune_flights <- cv.tree(tree_flights,FUN=prune.misclass)
+plot(cv_prune_flights$size,cv_prune_flights$dev, type="b")
+```
+We can see that when tree node size is 3, we are getting the least error. So pruning the tree is not required.
+
+Now, we have applied stratified ten-fold cross validation approach based on origin to check whether it will lower the misclassification error rate or not.
+```{r}
+set.seed(10)
+folds<-createFolds(factor(air_delay$ORIGIN), k=10)
+
+misclassification_tree<-function(idx){
+  Train<-air_delay[-idx,]
+  Test<-air_delay[idx,]
+  fit<-tree(factor(Binary_delayed) ~  factor(Binary_arr_time) + TAXI_OUT  + TAXI_IN  + DISTANCE + AIR_TIME, data=Train)
+  pred<-predict(fit,Test,type="class")
+  return(1-mean(pred==Test$Binary_delayed))
+}
+mis_rate_tree=lapply(folds,misclassification_tree)
+mean(as.numeric(mis_rate_tree))
+```
+We have a misclassification rate of 33.213 percent. Use of statified ten fold sampling reduced the error rate by 33.538 to 33.213 percent, a gain of 0.3 percent. This gain may not be worth in terms of computational complexity as validation apprach is simpler than startified ten-fold cross validation. 
+
+When we compare our classifaction tree model with the logistic regression model, we found that logistic regression model has lower misclassification rate. So it is the better model in predicting whether a flight gets delayed to JFK in the month of december.
+
+Regression Tree
+
+Instead of just classifying whether a flight is delayed or not. We want to quantify it using regression tree model.  
+
+```{r}
+set.seed(10)
+reg_treeflights <- tree( ARR_DELAY ~ factor(Binary_arr_time)  + TAXI_OUT  + TAXI_IN  + DISTANCE + AIR_TIME , train)
+summary(reg_treeflights)
+plot(reg_treeflights)
+text(reg_treeflights ,pretty =0)
+```
+We found that similar to classification tree model, only two variables TAXI_OUT and TAXI_IN are essential in building the tree model. Now we check RMSE of the model.
+
+```{r}
+set.seed(10)
+pred_unprunedtree <- predict(reg_treeflights, test)
+plot(pred_unprunedtree,test$ARR_DELAY)
+abline(0,1)
+sqrt(mean((test$ARR_DELAY-pred_unprunedtree)^2))
+```
+We can see that the rmse for the model is 62.17271, which is very high for the model, this can also be understood by looking at the graph which tells that there is a huge descrepency between the predicted values to the actual values.
+
+Pruning Tree with LOOCV
+```{r}
+set.seed(10)
+cv_regression_tree= cv.tree(reg_treeflights)
+plot(cv_regression_tree$size,cv_regression_tree$dev,type='b')
+```
+Output tells us that when tree node size is 3, we are getting the least error. So we need not prune the tree anymore. 
+
+We are not choosing this regression tree model for prediction as its rmse is very high and predicting the arrival delay for flights to JFK using this regression tree model will lead to inaccurate findings.
+
+
